@@ -7,7 +7,7 @@ Mini GPT-2 style language model trained on OpenWebText using PyTorch
 
 우리는 언어모델이 다음과 같이 발전하는 과정을 학습하였다.
 
-'''
+```
 Bigram Model
 → MLP on Names
 → MLP on Shakespeare
@@ -15,13 +15,13 @@ Bigram Model
 → Single-head Masked Self-Attention
 → Multi-head Masked Self-Attention
 → Mini GPT-style Transformer Language Model
-'''
+```
 
 본 프로젝트에서는 이 흐름을 바탕으로 OpenWebText 일부 데이터를 사용하여 Mini GPT-style language model을 구현하였다.
 
 최종 모델은 다음과 같은 구조를 가진다.
 
-'''
+```
 input token ids
 → token embedding
 → position embedding
@@ -36,7 +36,7 @@ input token ids
 → lm_head
 → logits over vocabulary
 → next-token prediction
-'''
+```
 
 이 프로젝트의 핵심 목적은 단순히 텍스트를 생성하는 것이 아니라, Bigram부터 GPT-style Transformer까지 언어모델이 왜 이런 구조로 발전했는지, 그리고 각 단계에서 tensor dimension이 어떻게 변하는지 이해하는 것이다.
 
