@@ -446,22 +446,32 @@ dataset = load_dataset(
 
 token 수집 과정은 다음과 같다.
 
-```
-max_tokens=5_000_000
-all_ids= []
+```python
+max_tokens = 5_000_000
+all_ids = []
 
-forexampleindataset:
-text=example["text"]
-ids=tokenizer.encode(text+tokenizer.eos_token)
-all_ids.extend(ids)
+for example in dataset:
+    text = example["text"]
 
-iflen(all_ids)>=max_tokens:
-break
+    # 문서 끝마다 GPT-2의 end-of-text token 추가
+    ids = tokenizer.encode(text + tokenizer.eos_token)
+
+    remaining = max_tokens - len(all_ids)
+
+    if len(ids) >= remaining:
+        all_ids.extend(ids[:remaining])
+        pbar.update(remaining)
+        break
+    else:
+        all_ids.extend(ids)
+        pbar.update(len(ids))
+
+data = torch.tensor(all_ids, dtype=torch.long)
 ```
 
 각 문서 끝에는 GPT-2의 end-of-text token을 추가하였다.
 
-```
+```python
 text+tokenizer.eos_token
 ```
 
@@ -473,8 +483,8 @@ text+tokenizer.eos_token
 
 본 프로젝트에서는 GPT-2 tokenizer를 사용하였다.
 
-```
-tokenizer=GPT2TokenizerFast.from_pretrained("gpt2")
+```python
+tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
 ```
 
 GPT-2 tokenizer의 vocabulary size는 다음과 같다.
@@ -496,25 +506,25 @@ vocab_size=50257
 
 next-token prediction을 위해 `NextTokenDataset`을 직접 정의하였다.
 
-```
-classNextTokenDataset(Dataset):
+```python
+class NextTokenDataset(Dataset):
 
-def__init__(self,data,block_size):
-self.data=data
-self.block_size=block_size
+    def __init__(self, data, block_size):
+        self.data = data
+        self.block_size = block_size
 
-def__len__(self):
-returnlen(self.data)-self.block_size
+    def __len__(self):
+        return len(self.data) - self.block_size
 
-def__getitem__(self,idx):
-x=self.data[idx :idx+self.block_size]
-y=self.data[idx+1 :idx+self.block_size+1]
-returnx,y
+    def __getitem__(self, idx):
+        x = self.data[idx : idx + self.block_size]
+        y = self.data[idx + 1 : idx + self.block_size + 1]
+        return x, y
 ```
 
 DataLoader는 batch를 구성한다.
 
-```
+```python
 loader=DataLoader(
 dataset,
 batch_size=batch_size,
@@ -543,7 +553,7 @@ yb.shape = (8, 256)
 
 `Head` class는 single masked self-attention head를 구현한다.
 
-```
+```python
 class Head(nn.Module):
 
     def __init__(self, emb_dim, head_size, block_size, dropout=0.1): #emb_dim, head_size(emb_dim을 몇개로 쪼갤건지), block size 변수로 저장
@@ -590,7 +600,7 @@ class Head(nn.Module):
 
 `MultiHeadAttention` class는 여러 개의 `Head`를 병렬로 실행한다.
 
-```
+```python
 class MultiHeadAttention(nn.Module):
 
     def __init__(self, emb_dim, num_heads, block_size, dropout=0.1):
@@ -627,13 +637,21 @@ class MultiHeadAttention(nn.Module):
 
 FeedForward는 학습이 너무 선형적으로만 이루어지지 않게 하기 위한 비선형 학습 모델이다. 
 
-```
-self.net=nn.Sequential(
-nn.Linear(emb_dim,4*emb_dim),
-nn.GELU(),
-nn.Linear(4*emb_dim,emb_dim),
-nn.Dropout(dropout),
-)
+```python
+class FeedForward(nn.Module):
+
+    def __init__(self, emb_dim, dropout=0.1):
+        super().__init__()
+
+        self.net = nn.Sequential(               # 여러 Layer을 하나로 묶음
+            nn.Linear(emb_dim, 4 * emb_dim),    # token 표현을 더 넓은 공간에서, (B,T,emb) -> (B,T,4*emb)
+            nn.GELU(),                          # GELU : 비선형 변환 함수
+            nn.Linear(4 * emb_dim, emb_dim),    # 다시 차원 축소 (원래대로)
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, x):
+        return self.net(x)
 ```
 
 dimension은 다음과 같다.
