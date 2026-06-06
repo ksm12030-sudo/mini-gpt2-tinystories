@@ -1,6 +1,3 @@
-# Generating Mini GPT 
-Mini GPT-2 style language model trained on OpenWebText using PyTorch
-
 # 1. Project Overview
 
 이 프로젝트는 GPT 계열 언어모델의 핵심 구조를 PyTorch로 직접 구현하는 것을 목표로 한다.
